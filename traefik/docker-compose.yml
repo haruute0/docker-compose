@@ -1,0 +1,51 @@
+version: "3"
+
+services:
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    network_mode: bridge
+    command:
+      # Globals
+      - "--log.level=DEBUG"
+      - "--api=true"
+      - "--global.sendAnonymousUsage=false"
+      # Docker
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      # Entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # LetsEncrypt
+      # - "--certificatesresolvers.cfdns.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.cfdns.acme.email=${CF_API_EMAIL}"
+      - "--certificatesresolvers.cfdns.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.cfdns.acme.storage=/etc/traefik/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_API_KEY=${CF_API_KEY}
+    volumes:
+      - "/etc/traefik/acme.json:/etc/traefik/acme.json"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      # API
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.middlewares=dashboard-auth"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${FIRST_DOMAIN}`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_CREDS}"
+      # Wildcard cert
+      - "traefik.http.routers.traefik.tls.domains[0].main=${FIRST_DOMAIN}"
+      - "traefik.http.routers.traefik.tls.domains[1].main=${SECOND_DOMAIN}"
+      - "traefik.http.routers.traefik.tls.domains[1].main=*.${FIRST_DOMAIN}"
+      - "traefik.http.routers.traefik.tls.domains[0].sans=*.${SECOND_DOMAIN}"
+      - "traefik.http.routers.traefik.tls.certresolver=cfdns"
+      # Global http-->https
+      - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:[a-z-.]+}`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"

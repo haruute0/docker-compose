@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  commento:
+    container_name: commento
+    image: registry.gitlab.com/commento/commento:latest
+    environment:
+      COMMENTO_ORIGIN: https://commento.${FIRST_DOMAIN}
+      COMMENTO_PORT: 8080
+      COMMENTO_POSTGRES: postgres://postgres:postgres@psqldb:5432/commento?sslmode=disable
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.commento.entrypoints=websecure"
+      - "traefik.http.routers.commento.rule=Host(`commento.${FIRST_DOMAIN}`)"
+      - "traefik.http.services.commento.loadbalancer.server.port=8080"
+      - "traefik.http.routers.commento.tls.certresolver=cfdns"
+    depends_on:
+      - psqldb
+  psqldb:
+    image: postgres
+    environment:
+      POSTGRES_DB: commento
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data_volume:/var/lib/postgresql/data
+
+volumes:
+  postgres_data_volume:

@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  yourls:
+    container_name: yourls
+    image: yourls
+    environment:
+      - YOURLS_SITE=https://${SECOND_DOMAIN}
+      - YOURLS_DEBUG=false
+      - YOURLS_DB_HOST=mysql
+      - YOURLS_DB_USER=yourls
+      - YOURLS_DB_PASS=yourls
+      - YOURLS_DB_NAME=yourls
+      - YOURLS_USER=${YOURLS_USERNAME}
+      - YOURLS_PASS=${YOURLS_PASSWORD}
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.yourls.entrypoints=websecure"
+      - "traefik.http.routers.yourls.rule=Host(`${SECOND_DOMAIN}`)"
+      - "traefik.http.routers.yourls.tls.certresolver=cfdns"
+    network_mode: bridge
