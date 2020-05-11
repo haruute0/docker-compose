@@ -4,7 +4,6 @@ services:
   cloud:
     container_name: cloud
     image: nextcloud
-    network_mode: bridge
     restart: unless-stopped
     environment:
       - MYSQL_DATABASE=nextcloud
@@ -21,3 +20,10 @@ services:
       - "traefik.http.routers.cloud.entrypoints=websecure"
       - "traefik.http.routers.cloud.rule=Host(`cloud.${FIRST_DOMAIN}`)"
       - "traefik.http.routers.cloud.tls.certresolver=cfdns"
+      - "traefik.http.routers.cloud.middlewares=cloud-chain"
+      - "traefik.http.middlewares.cloud-chain.chain.middlewares=cloud-header,cloud-redirect"
+      - "traefik.http.middlewares.cloud-header.headers.stsSeconds=15552000"
+      - "traefik.http.middlewares.cloud-redirect.redirectregex.permanent=true"
+      - "traefik.http.middlewares.cloud-redirect.redirectregex.regex=https://(.*)/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.cloud-redirect.redirectregex.replacement=https://$$1/remote.php/dav/"
+    network_mode: bridge
