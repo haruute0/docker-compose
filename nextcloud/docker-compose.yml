@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  cloud:
+    container_name: cloud
+    image: nextcloud
+    network_mode: bridge
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=nextcloud
+      - MYSQL_HOST=mysql
+    volumes:
+      - "/home/${USER}/nextcloud/html:/var/www/html"
+      - "/home/${USER}/nextcloud/config:/var/www/html/config"
+      - "/home/${USER}/nextcloud/data:/var/www/html/data"
+      - "/home/${USER}/nextcloud/php.ini:/usr/local/etc/php/conf.d/zzz-custom.ini"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cloud.entrypoints=websecure"
+      - "traefik.http.routers.cloud.rule=Host(`cloud.${FIRST_DOMAIN}`)"
+      - "traefik.http.routers.cloud.tls.certresolver=cfdns"
